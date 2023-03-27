@@ -1,12 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import getRandomString from '../../utils/getRandomString';
+
 export default function MainView() {
   const navigate = useNavigate();
 
   const handleMoveNewRoom = () => {
-    const roomId = Math.random().toString(36).substring(2);
-    navigate(`/room/${roomId}`);
+    navigate(`/room/${getRandomString()}`);
   };
 
   return (

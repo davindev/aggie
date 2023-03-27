@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 
+import getRandomString from '../../utils/getRandomString';
+
 export default function RoomView() {
   const { roomId } = useParams();
 
@@ -10,7 +12,7 @@ export default function RoomView() {
   useEffect(() => {
     socket.connect();
 
-    const username = `Anonymous#${Math.random().toString(36).substring(2)}`;
+    const username = `Anonymous#${getRandomString()}`;
     socket.emit('join-room', { roomId, username });
 
     socket.on('welcome-message', (message: string) => console.log(message));
