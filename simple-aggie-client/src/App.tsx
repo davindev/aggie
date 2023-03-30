@@ -4,6 +4,8 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import MainView from './pages/main/MainView';
 import RoomView from './pages/room/RoomView';
 
+import './index.css';
+
 function App() {
   const router = createBrowserRouter([
     { path: '/', element: <MainView /> },
