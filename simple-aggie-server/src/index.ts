@@ -6,7 +6,7 @@ const app = express();
 const server = http.createServer(app).listen(8080);
 const io = new Server(
   server,
-  { cors: { origin: 'http://localhost:3001' } },
+  { cors: { origin: '*' } },
 );
 
 interface JoinRoom {
@@ -17,19 +17,28 @@ interface JoinRoom {
 interface MousePosition {
   x: number;
   y: number;
+}
+
+interface Path extends MousePosition {
   color: string;
 }
 
 io.on('connection', (socket: any) => {
-  // 방 입장
   socket.on('join-room', ({ roomId, username }: JoinRoom) => {
     socket.join(roomId);
-    socket.emit('send-welcome-message', `${username}님이 입장하셨습니다.`);
+    socket.emit('send-message', `${username}님이 입장하셨습니다.`);
   });
 
-  // 마우스 위치 정보 전달
-  socket.on('mouse-move-on-canvas', (mousePosition: MousePosition) => {
-    socket.broadcast.emit('mouse-move-on-canvas', mousePosition);
+  socket.on('start-drawing', (mousePosition: MousePosition) => {
+    socket.broadcast.emit('start-drawing', mousePosition);
+  });
+
+  socket.on('draw', (path: Path) => {
+    socket.broadcast.emit('draw', path);
+  });
+
+  socket.on('finish-drawing', () => {
+    socket.broadcast.emit('finish-drawing');
   });
 });
 

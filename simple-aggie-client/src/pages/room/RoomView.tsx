@@ -12,8 +12,13 @@ import getRandomString from '../../utils/getRandomString';
 interface MousePosition {
   x: number;
   y: number;
+}
+
+interface Path extends MousePosition {
   color: string;
 }
+
+const socket = io('http://localhost:8080', { transports: ['websocket'] });
 
 export default function RoomView() {
   const { roomId } = useParams();
@@ -21,90 +26,110 @@ export default function RoomView() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const ctx = canvasRef.current?.getContext('2d');
 
-  const [isPainting, setIsPainting] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [lastMousePosition, setLastMousePosition] = useState<MousePosition>({ x: 0, y: 0 });
 
-  const socket = io('http://localhost:8080');
+  const startDrawing = useCallback((mousePosition: MousePosition) => {
+    setIsDrawing(true);
+    setLastMousePosition(mousePosition);
+  }, []);
 
-  const handlePaintOnCanvas = useCallback(({ x, y, color }: MousePosition) => {
+  const draw = useCallback(({ x, y, color }: Path) => {
     if (ctx) {
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 8;
       ctx.strokeStyle = color;
       ctx.beginPath();
-      ctx.moveTo(x, y);
+      ctx.moveTo(lastMousePosition.x, lastMousePosition.y);
       ctx.lineTo(x, y);
       ctx.stroke();
-      ctx.closePath();
-      socket.emit('paint-on-canvas', { x, y, color });
+
+      setLastMousePosition({ x, y });
     }
-  }, [ctx, socket]);
+  }, [ctx, lastMousePosition.x, lastMousePosition.y]);
 
-  const handleMouseMoveOnCanvas = useCallback(({ x, y, color }: MousePosition) => {
+  const finishDrawing = useCallback(() => {
     if (ctx) {
-      const canvas = canvasRef.current as HTMLCanvasElement;
-      const rect = canvas.getBoundingClientRect();
-      const rectX = x - rect.left;
-      const rectY = y - rect.top;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.beginPath();
-      ctx.arc(rectX, rectY, 8, 0, 2 * Math.PI);
-      ctx.fillStyle = color;
-      ctx.fill();
+      ctx.closePath();
+      setIsDrawing(false);
     }
   }, [ctx]);
 
-  const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
-    if (isPainting) {
-      const x = event.nativeEvent.offsetX;
-      const y = event.nativeEvent.offsetY;
-      handlePaintOnCanvas({ x, y, color: 'green' });
-      return;
-    }
-
+  const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
     const mousePosition = {
-      x: event.clientX,
-      y: event.clientY,
-      color: 'green',
+      x: event.nativeEvent.offsetX,
+      y: event.nativeEvent.offsetY,
     };
 
-    handleMouseMoveOnCanvas(mousePosition);
+    startDrawing(mousePosition);
+    socket.emit('start-drawing', mousePosition);
+  }, [startDrawing]);
 
-    // 마우스 위치 정보 발신
-    socket.emit('mouse-move-on-canvas', mousePosition);
-  };
+  const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
+    if (isDrawing) {
+      const path = {
+        x: event.nativeEvent.offsetX,
+        y: event.nativeEvent.offsetY,
+        color: 'green',
+      };
+
+      draw(path);
+      socket.emit('draw', path);
+    }
+  }, [draw, isDrawing]);
+
+  const handleMouseUp = useCallback(() => {
+    finishDrawing();
+    socket.emit('finish-drawing');
+  }, [finishDrawing]);
 
   useEffect(() => {
-    // socket 연결
     socket.connect();
 
-    // 방 입장
     const username = `anonymous#${getRandomString()}`;
     socket.emit('join-room', { roomId, username });
 
-    // 웰컴 메세지 노출
-    socket.on('send-welcome-message', (message: string) => console.log(message));
-  }, [socket, roomId]);
+    socket.on('send-message', (message: string) => console.log(message));
+
+    return () => {
+      socket.off('send-message');
+      socket.disconnect();
+    };
+  }, [roomId]);
 
   useEffect(() => {
-    // 마우스 위치 정보 수신
-    socket.on('mouse-move-on-canvas', handleMouseMoveOnCanvas);
-  }, [socket, handleMouseMoveOnCanvas]);
+    socket.on('start-drawing', startDrawing);
 
-  // useEffect(() => {
-  //   // 캔버스 path 데이터 수신
-  //   socket.on('paint-on-canvas', handlePaintOnCanvas);
-  // }, [socket, handlePaintOnCanvas]);
+    return () => {
+      socket.off('start-drawing');
+    };
+  }, [startDrawing]);
+
+  useEffect(() => {
+    socket.on('draw', draw);
+
+    return () => {
+      socket.off('draw');
+    };
+  }, [draw]);
+
+  useEffect(() => {
+    socket.on('finish-drawing', finishDrawing);
+
+    return () => {
+      socket.off('finish-drawing');
+    };
+  }, [finishDrawing]);
 
   return (
-    <div>
-      <canvas
-        ref={canvasRef}
-        width={800}
-        height={800}
-        onMouseDown={() => setIsPainting(true)}
-        onMouseMove={handleMouseMove}
-        onMouseUp={() => setIsPainting(false)}
-        onMouseLeave={() => setIsPainting(false)}
-      />
-    </div>
+    <canvas
+      ref={canvasRef}
+      width={window.innerWidth}
+      height={window.innerHeight}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+    />
   );
 }
