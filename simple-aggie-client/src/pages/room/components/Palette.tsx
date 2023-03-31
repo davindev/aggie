@@ -23,8 +23,8 @@ export default function Palette({ onChange }: Props) {
             onChange={(event) => onChange(event.target.value)}
           />
           <span
-            className="block w-12 h-12 rounded-full cursor-pointer"
-            style={{ backgroundColor: color.hex }}
+            className="block w-12 h-12 rounded-full cursor-pointer border-dashed"
+            style={{ backgroundColor: color.hex, border: color.name === 'white' ? 'dashed' : 'none' }}
           />
         </label>
       ))}

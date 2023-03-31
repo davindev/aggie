@@ -4,4 +4,5 @@ export const COLORS = [
   { name: 'green', hex: '#3caea3' },
   { name: 'yellow', hex: '#f6d55c' },
   { name: 'red', hex: '#ed553b' },
+  { name: 'white', hex: '#ffffff' },
 ];
