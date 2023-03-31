@@ -14,6 +14,7 @@ import getRandomString from '../../utils/getRandomString';
 import { COLORS } from './constants';
 
 import Palette from './components/Palette';
+import Utils from './components/Utils';
 
 interface MousePosition {
   x: number;
@@ -30,6 +31,7 @@ export default function RoomView() {
   const { roomId } = useParams();
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const ctx = canvasRef.current?.getContext('2d');
 
   const [isDrawing, setIsDrawing] = useState(false);
   const [lastMousePosition, setLastMousePosition] = useState<MousePosition>({ x: 0, y: 0 });
@@ -41,8 +43,6 @@ export default function RoomView() {
   }, []);
 
   const draw = useCallback(({ x, y, color }: Path) => {
-    const ctx = canvasRef.current?.getContext('2d');
-
     if (ctx) {
       ctx.lineCap = 'round';
       ctx.lineWidth = 8;
@@ -54,7 +54,7 @@ export default function RoomView() {
 
       setLastMousePosition({ x, y });
     }
-  }, [lastMousePosition.x, lastMousePosition.y]);
+  }, [ctx, lastMousePosition.x, lastMousePosition.y]);
 
   const finishDrawing = useCallback(() => {
     setIsDrawing(false);
@@ -87,6 +87,14 @@ export default function RoomView() {
     finishDrawing();
     socket.emit('finish-drawing');
   }, [finishDrawing]);
+
+  // 캔버스 초기 설정
+  useEffect(() => {
+    if (ctx) {
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+    }
+  }, [ctx]);
 
   // 방 입장
   useEffect(() => {
@@ -156,10 +164,16 @@ export default function RoomView() {
 
       <Palette onChange={(color: string) => setPathColor(color)} />
 
+      <Utils
+        roomId={roomId}
+        canvasDataURL={canvasRef.current?.toDataURL('image/png')}
+      />
+
       <canvas
         ref={canvasRef}
         width={window.innerWidth}
         height={window.innerHeight}
+        className="bg-white"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
