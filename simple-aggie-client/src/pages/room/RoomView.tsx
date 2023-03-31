@@ -56,7 +56,7 @@ export default function RoomView() {
     setIsDrawing(false);
   }, []);
 
-  const handleMouseDown = (event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
+  const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
     const mousePosition = {
       x: event.nativeEvent.offsetX,
       y: event.nativeEvent.offsetY,
@@ -64,9 +64,9 @@ export default function RoomView() {
 
     startDrawing(mousePosition);
     socket.emit('start-drawing', mousePosition);
-  };
+  }, [startDrawing]);
 
-  const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
+  const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
     if (isDrawing) {
       const path = {
         x: event.nativeEvent.offsetX,
@@ -77,27 +77,35 @@ export default function RoomView() {
       draw(path);
       socket.emit('draw', path);
     }
-  };
+  }, [isDrawing, draw]);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     finishDrawing();
     socket.emit('finish-drawing');
-  };
+  }, [finishDrawing]);
 
+  // 방 입장
   useEffect(() => {
     socket.connect();
 
     const username = `anonymous#${getRandomString()}`;
     socket.emit('join-room', { roomId, username });
 
-    socket.on('send-message', (message: string) => toast.info(message));
-
     return () => {
-      socket.off('send-message');
       socket.disconnect();
     };
   }, [roomId]);
 
+  // 웰컴 메세지 수신
+  useEffect(() => {
+    socket.on('send-message', toast.info);
+
+    return () => {
+      socket.off('send-message');
+    };
+  }, []);
+
+  // 그림 시작 좌표 수신
   useEffect(() => {
     socket.on('start-drawing', startDrawing);
 
@@ -106,6 +114,7 @@ export default function RoomView() {
     };
   }, [startDrawing]);
 
+  // 그림 현재 좌표 수신
   useEffect(() => {
     socket.on('draw', draw);
 
@@ -114,6 +123,7 @@ export default function RoomView() {
     };
   }, [draw]);
 
+  // 그림 종료 여부 수신
   useEffect(() => {
     socket.on('finish-drawing', finishDrawing);
 
