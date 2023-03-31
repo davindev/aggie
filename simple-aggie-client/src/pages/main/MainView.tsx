@@ -15,7 +15,7 @@ export default function MainView() {
 
   return (
     <div
-      className="grid place-items-center w-screen h-screen font-sans text-center"
+      className="grid place-items-center w-screen h-screen bg-center font-sans text-center"
       style={{ background: `url(${bg}) no-repeat`, backgroundSize: 'cover', backgroundColor: '#260420' }}
     >
       <div>

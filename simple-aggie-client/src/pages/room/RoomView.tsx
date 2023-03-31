@@ -11,6 +11,9 @@ import { ToastContainer, Slide, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import getRandomString from '../../utils/getRandomString';
+import { COLORS } from './constants';
+
+import Palette from './components/Palette';
 
 interface MousePosition {
   x: number;
@@ -30,6 +33,7 @@ export default function RoomView() {
 
   const [isDrawing, setIsDrawing] = useState(false);
   const [lastMousePosition, setLastMousePosition] = useState<MousePosition>({ x: 0, y: 0 });
+  const [pathColor, setPathColor] = useState(COLORS[0].hex);
 
   const startDrawing = useCallback((mousePosition: MousePosition) => {
     setIsDrawing(true);
@@ -71,13 +75,13 @@ export default function RoomView() {
       const path = {
         x: event.nativeEvent.offsetX,
         y: event.nativeEvent.offsetY,
-        color: 'green',
+        color: pathColor,
       };
 
       draw(path);
       socket.emit('draw', path);
     }
-  }, [isDrawing, draw]);
+  }, [isDrawing, pathColor, draw]);
 
   const handleMouseUp = useCallback(() => {
     finishDrawing();
@@ -133,7 +137,7 @@ export default function RoomView() {
   }, [finishDrawing]);
 
   return (
-    <div>
+    <div className="relative">
       <ToastContainer
         position="top-center"
         autoClose={5000}
@@ -149,6 +153,8 @@ export default function RoomView() {
         theme="light"
         transition={Slide}
       />
+
+      <Palette onChange={(color: string) => setPathColor(color)} />
 
       <canvas
         ref={canvasRef}
