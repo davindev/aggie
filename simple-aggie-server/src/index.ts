@@ -47,5 +47,3 @@ io.on('connection', (socket: any) => {
     });
   });
 });
-
-export {};
