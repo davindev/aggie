@@ -7,6 +7,9 @@ import React, {
 import { useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 
+import { ToastContainer, Slide, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 import getRandomString from '../../utils/getRandomString';
 
 interface MousePosition {
@@ -24,7 +27,6 @@ export default function RoomView() {
   const { roomId } = useParams();
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const ctx = canvasRef.current?.getContext('2d');
 
   const [isDrawing, setIsDrawing] = useState(false);
   const [lastMousePosition, setLastMousePosition] = useState<MousePosition>({ x: 0, y: 0 });
@@ -35,6 +37,8 @@ export default function RoomView() {
   }, []);
 
   const draw = useCallback(({ x, y, color }: Path) => {
+    const ctx = canvasRef.current?.getContext('2d');
+
     if (ctx) {
       ctx.lineCap = 'round';
       ctx.lineWidth = 8;
@@ -46,16 +50,13 @@ export default function RoomView() {
 
       setLastMousePosition({ x, y });
     }
-  }, [ctx, lastMousePosition.x, lastMousePosition.y]);
+  }, [lastMousePosition.x, lastMousePosition.y]);
 
   const finishDrawing = useCallback(() => {
-    if (ctx) {
-      ctx.closePath();
-      setIsDrawing(false);
-    }
-  }, [ctx]);
+    setIsDrawing(false);
+  }, []);
 
-  const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
+  const handleMouseDown = (event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
     const mousePosition = {
       x: event.nativeEvent.offsetX,
       y: event.nativeEvent.offsetY,
@@ -63,9 +64,9 @@ export default function RoomView() {
 
     startDrawing(mousePosition);
     socket.emit('start-drawing', mousePosition);
-  }, [startDrawing]);
+  };
 
-  const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
+  const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement, MouseEvent>) => {
     if (isDrawing) {
       const path = {
         x: event.nativeEvent.offsetX,
@@ -76,12 +77,12 @@ export default function RoomView() {
       draw(path);
       socket.emit('draw', path);
     }
-  }, [draw, isDrawing]);
+  };
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = () => {
     finishDrawing();
     socket.emit('finish-drawing');
-  }, [finishDrawing]);
+  };
 
   useEffect(() => {
     socket.connect();
@@ -89,7 +90,7 @@ export default function RoomView() {
     const username = `anonymous#${getRandomString()}`;
     socket.emit('join-room', { roomId, username });
 
-    socket.on('send-message', (message: string) => console.log(message));
+    socket.on('send-message', (message: string) => toast.info(message));
 
     return () => {
       socket.off('send-message');
@@ -122,14 +123,32 @@ export default function RoomView() {
   }, [finishDrawing]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={window.innerWidth}
-      height={window.innerHeight}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-    />
+    <div>
+      <ToastContainer
+        position="top-center"
+        autoClose={5000}
+        closeButton={false}
+        hideProgressBar
+        newestOnTop={false}
+        closeOnClick={false}
+        style={{ width: 'auto' }}
+        rtl={false}
+        pauseOnFocusLoss={false}
+        draggable={false}
+        pauseOnHover={false}
+        theme="light"
+        transition={Slide}
+      />
+
+      <canvas
+        ref={canvasRef}
+        width={window.innerWidth}
+        height={window.innerHeight}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      />
+    </div>
   );
 }
