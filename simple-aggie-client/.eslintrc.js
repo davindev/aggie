@@ -28,6 +28,8 @@ module.exports = {
     '@typescript-eslint/no-unused-vars': 'error',
     // 파일에서 named export를 할 때, default export의 여부를 확인하지 않는다.
     'import/prefer-default-export': 'off',
+    // 필수 값이 아닌 props의 경우 default 값을 체크하지 않는다.
+    'react/require-default-props': 'off',
   },
   settings: {
     'import/resolver': {
