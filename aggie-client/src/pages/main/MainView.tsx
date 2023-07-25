@@ -20,7 +20,7 @@ export default function MainView() {
     >
       <div>
         <h1 className="text-6xl text-white">
-          Simple Aggie
+          Aggie
         </h1>
         <p className="mt-4 text-4xl text-white">
           A collaborative painting applications

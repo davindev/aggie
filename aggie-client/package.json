@@ -1,5 +1,5 @@
 {
-  "name": "simple-aggie-client",
+  "name": "aggie-client",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
